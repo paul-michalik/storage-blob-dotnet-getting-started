@@ -394,7 +394,7 @@ namespace BlobStorage
             try
             {
                 // List containers beginning with the specified prefix, and without returning container metadata.
-                var segResult = await blobClient.ListContainersSegmentedAsync(prefix: prefix, currentToken: null);
+                var segResult = await blobClient.ListContainersSegmentedAsync(prefix, null);
                 foreach (var container in segResult.Results)
                 {
                     Console.WriteLine("\tContainer:" + container.Name);
@@ -781,7 +781,7 @@ namespace BlobStorage
             finally
             {
                 // Enumerate containers based on the prefix used to name them, and delete any remaining containers.
-                var segResult = await blobClient.ListContainersSegmentedAsync(prefix: LeasingPrefix, currentToken: null);
+                var segResult = await blobClient.ListContainersSegmentedAsync(LeasingPrefix, null);
                 foreach (var container in segResult.Results)
                 {
                     await container.FetchAttributesAsync();
@@ -834,7 +834,7 @@ namespace BlobStorage
             try
             {
                 var segResult = await blobClient
-                    .ListContainersSegmentedAsync(prefix: prefix, currentToken: null);
+                    .ListContainersSegmentedAsync(prefix, null);
                 foreach (var container in segResult.Results)
                 {
                     Console.WriteLine("\tContainer:" + container.Name);
