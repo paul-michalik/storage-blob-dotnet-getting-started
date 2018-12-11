@@ -51,7 +51,7 @@ namespace BlobStorage
 
             try
             {
-                storageAccount = CloudStorageAccount.Parse(System.Configuration.ConfigurationManager.AppSettings["StorageConnectionString"]);
+                storageAccount = CloudStorageAccount.Parse(Common.GetAppSetting("StorageConnectionString"));
             }
             catch (StorageException e)
             {
@@ -77,7 +77,7 @@ namespace BlobStorage
                 container = await CreateSampleContainerAsync(blobClient);
 
                 // Call Blob service client samples. 
-                await CallBlobClientSamples(blobClient);
+                await CallBlobClientSamplesAsync(blobClient);
 
                 // Call blob container samples using the sample container just created.
                 await CallContainerSamples(container);
@@ -124,7 +124,7 @@ namespace BlobStorage
         /// </summary>
         /// <param name="blobClient">The Blob service client.</param>
         /// <returns>A Task object.</returns>
-        private static async Task CallBlobClientSamples(CloudBlobClient blobClient)
+        private static async Task CallBlobClientSamplesAsync(CloudBlobClient blobClient)
         {
             // Create a buffer manager for the Blob service client. The buffer manager enables the Blob service client to
             // re-use an existing buffer across multiple operations.
@@ -348,8 +348,7 @@ namespace BlobStorage
         /// <returns>A Task object.</returns>
         private static async Task GetServiceStatsForSecondaryAsync(CloudBlobClient blobClient)
         {
-            try
-            {
+            try {
                 // Get the URI for the secondary endpoint for Blob storage.
                 Uri secondaryUri = blobClient.StorageUri.SecondaryUri;
 
@@ -363,19 +362,16 @@ namespace BlobStorage
                 Console.WriteLine("Geo-replication status: {0}", blobStats.GeoReplication.Status);
                 Console.WriteLine("Last geo-replication sync time: {0}", blobStats.GeoReplication.LastSyncTime);
                 Console.WriteLine();
-            }
-            catch (StorageException e)
-            {
+            } catch (InvalidOperationException e) {
+                Console.WriteLine($"Operation GetServiceStatsAsync failed with {e.Message}");
+            } catch (StorageException e) {
                 // In this case, we do not re-throw the exception, so that the sample will continue to run even if RA-GRS is not enabled
                 // for this storage account.
-                if (e.RequestInformation.HttpStatusCode == 403)
-                {
+                if (e.RequestInformation.HttpStatusCode == 403) {
                     Console.WriteLine("This storage account does not appear to support RA-GRS.");
                     Console.WriteLine("More information: {0}", e.Message);
                     Console.WriteLine();
-                }
-                else
-                {
+                } else {
                     Console.WriteLine(e.Message);
                     Console.ReadLine();
                     throw;
@@ -519,7 +515,7 @@ namespace BlobStorage
             Console.WriteLine("Base URI: {0}", blobClient.BaseUri);
             Console.WriteLine("Primary URI: {0}", blobClient.StorageUri.PrimaryUri);
             Console.WriteLine("Secondary URI: {0}", blobClient.StorageUri.SecondaryUri);
-            Console.WriteLine("Default buffer size: {0}", blobClient.BufferManager.GetDefaultBufferSize());
+            Console.WriteLine("Default buffer size: {0}", blobClient.BufferManager?.GetDefaultBufferSize() ?? 0);
             Console.WriteLine("Default delimiter: {0}", blobClient.DefaultDelimiter);
             Console.WriteLine();
         }
