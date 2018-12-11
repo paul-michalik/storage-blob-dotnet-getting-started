@@ -107,7 +107,10 @@ namespace BlobStorage
             /// Note that the ListBlobs method is called synchronously, for the purposes of the sample. However, in a real-world
             /// application using the async/await pattern, best practices recommend using asynchronous methods consistently.
             Console.WriteLine("3. List Blobs in Container");
-            foreach (IListBlobItem blob in container.ListBlobs())
+            foreach (IListBlobItem blob in await 
+                container
+                .ListBlobsSegmentedAsync(currentToken:null)
+                .ContinueWith(res => res.Result.Results))
             {
                 // Blob type will be CloudBlockBlob, CloudPageBlob or CloudBlobDirectory
                 // Use blob.GetType() and cast to appropriate type to gain access to properties specific to each type

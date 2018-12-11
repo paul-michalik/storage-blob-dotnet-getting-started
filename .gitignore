@@ -1,11 +1,12 @@
 *.suo
-BlobStorage/bin/Debug/BlobStorage.exe
+*.exe
 *.dll
 *.csproj
 *.xml
-BlobStorage/obj/Debug/*.*
-BlobStorage/bin/Debug/*.*
-BlobStorage/StyleCop.cache
+*/obj/*
+*/bin/*
+*/StyleCop.cache
 *.nupkg
 packages/*
-*.ps1
+/.vs/BlobStorage/v15/Server/sqlite3
+/.vs/BlobStorage/DesignTimeBuild

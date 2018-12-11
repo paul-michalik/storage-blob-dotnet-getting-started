@@ -21,7 +21,6 @@ namespace BlobStorage
     using System.IO;
     using System.Linq;
     using System.Security.Cryptography;
-    using System.ServiceModel.Channels;
     using System.Text;
     using System.Threading.Tasks;
     using Microsoft.Azure;
@@ -52,7 +51,7 @@ namespace BlobStorage
 
             try
             {
-                storageAccount = CloudStorageAccount.Parse(Common.GetAppSetting("StorageConnectionString"));
+                storageAccount = CloudStorageAccount.Parse(System.Configuration.ConfigurationManager.AppSettings["StorageConnectionString"]);
             }
             catch (StorageException e)
             {
@@ -129,8 +128,8 @@ namespace BlobStorage
         {
             // Create a buffer manager for the Blob service client. The buffer manager enables the Blob service client to
             // re-use an existing buffer across multiple operations.
-            blobClient.BufferManager = new WCFBufferManagerAdapter(
-                BufferManager.CreateBufferManager(32 * 1024, 256 * 1024), 256 * 1024);
+            //blobClient.BufferManager = new WCFBufferManagerAdapter(
+            //    BufferManager.CreateBufferManager(32 * 1024, 256 * 1024), 256 * 1024);
 
             // Print out properties for the service client.
             PrintServiceClientProperties(blobClient);
@@ -142,7 +141,7 @@ namespace BlobStorage
             await GetServiceStatsForSecondaryAsync(blobClient);
 
             // List all containers in the storage account.
-            ListAllContainers(blobClient, "sample-");
+            await ListAllContainersAsync(blobClient, "sample-");
 
             // List containers beginning with the specified prefix.
             await ListContainersWithPrefixAsync(blobClient, "sample-");
@@ -217,7 +216,7 @@ namespace BlobStorage
             await ListBlobsHierarchicalListingAsync(container, null);
 
             // List blobs whose names begin with "s" hierarchically, passing the container name as part of the prefix.
-            ListBlobsFromServiceClient(container.ServiceClient, string.Format("{0}/s", container.Name));
+            await ListBlobsFromServiceClientAsync(container.ServiceClient, string.Format("{0}/s", container.Name));
 
             // List blobs whose names begin with "0" hierarchically, passing the container name as part of the prefix.
             await ListBlobsFromServiceClientAsync(container.ServiceClient, string.Format("{0}/0", container.Name));
@@ -391,7 +390,7 @@ namespace BlobStorage
         /// </summary>
         /// <param name="blobClient">The Blob service client.</param>
         /// <param name="prefix">The container prefix.</param>
-        private static void ListAllContainers(CloudBlobClient blobClient, string prefix)
+        private static async Task ListAllContainersAsync(CloudBlobClient blobClient, string prefix)
         {
             // List all containers in this storage account.
             Console.WriteLine("List all containers in account:");
@@ -399,7 +398,8 @@ namespace BlobStorage
             try
             {
                 // List containers beginning with the specified prefix, and without returning container metadata.
-                foreach (var container in blobClient.ListContainers(prefix, ContainerListingDetails.None, null, null))
+                var segResult = await blobClient.ListContainersSegmentedAsync(prefix: prefix, currentToken: null);
+                foreach (var container in segResult.Results)
                 {
                     Console.WriteLine("\tContainer:" + container.Name);
                 }
@@ -456,36 +456,6 @@ namespace BlobStorage
                     continuationToken = resultSegment.ContinuationToken;
 
                 } while (continuationToken != null);
-
-                Console.WriteLine();
-            }
-            catch (StorageException e)
-            {
-                Console.WriteLine(e.Message);
-                Console.ReadLine();
-                throw;
-            }
-        }
-
-        /// <summary>
-        /// Lists blobs beginning with the specified prefix, which must include the container name.
-        /// Note that the ListBlobs method is called synchronously, for the purposes of the sample. However, in a real-world
-        /// application using the async/await pattern, best practices recommend using asynchronous methods consistently.
-        /// </summary>
-        /// <param name="blobClient">The Blob service client.</param>
-        /// <param name="prefix">The prefix.</param>
-        private static void ListBlobsFromServiceClient(CloudBlobClient blobClient, string prefix)
-        {
-            Console.WriteLine("List blobs by prefix. Prefix must include container name:");
-
-            try
-            {
-                // The prefix is required when listing blobs from the service client. The prefix must include
-                // the container name.
-                foreach (var blob in  blobClient.ListBlobs(prefix, true, BlobListingDetails.None, null, null))
-                {
-                    Console.WriteLine("\tBlob:" + blob.Uri);
-                }
 
                 Console.WriteLine();
             }
@@ -815,7 +785,8 @@ namespace BlobStorage
             finally
             {
                 // Enumerate containers based on the prefix used to name them, and delete any remaining containers.
-                foreach (var container in blobClient.ListContainers(LeasingPrefix))
+                var segResult = await blobClient.ListContainersSegmentedAsync(prefix: LeasingPrefix, currentToken: null);
+                foreach (var container in segResult.Results)
                 {
                     await container.FetchAttributesAsync();
                     if (container.Properties.LeaseState == LeaseState.Leased || container.Properties.LeaseState == LeaseState.Breaking)
@@ -866,7 +837,9 @@ namespace BlobStorage
             Console.WriteLine("Delete all containers beginning with the specified prefix");
             try
             {
-                foreach (var container in blobClient.ListContainers(prefix))
+                var segResult = await blobClient
+                    .ListContainersSegmentedAsync(prefix: prefix, currentToken: null);
+                foreach (var container in segResult.Results)
                 {
                     Console.WriteLine("\tContainer:" + container.Name);
                     if (container.Properties.LeaseState == LeaseState.Leased)
@@ -1009,13 +982,17 @@ namespace BlobStorage
             // List operation: List the blobs in the container.
             try
             {
-                foreach (ICloudBlob blobItem in container.ListBlobs(
-                                                                    prefix: null, 
-                                                                    useFlatBlobListing: true, 
-                                                                    blobListingDetails: BlobListingDetails.None, 
-                                                                    options: null, 
-                                                                    operationContext: null))
-                {
+
+                foreach (ICloudBlob blobItem in await container
+                    .ListBlobsSegmentedAsync(
+                        prefix: null,
+                        useFlatBlobListing: true,
+                        blobListingDetails: BlobListingDetails.None,
+                        options: null,
+                        operationContext: null,
+                        maxResults: null,
+                        currentToken: null)
+                    .ContinueWith(res => res.Result.Results)) {
                     Console.WriteLine(blobItem.Uri);
                 }
 
@@ -1354,45 +1331,6 @@ namespace BlobStorage
 
         /// <summary>
         /// Gets a reference to a blob by making a request to the service.
-        /// Note that the GetBlobReferenceFromServer method is called synchronously, for the purposes of the sample. However, in a real-world
-        /// application using the async/await pattern, best practices recommend using asynchronous methods consistently.
-        /// </summary>
-        /// <param name="container">The container.</param>
-        /// <param name="blobName">The blob name.</param>
-        /// <returns>A Task object.</returns>
-        private static void GetExistingBlobReference(CloudBlobContainer container, string blobName)
-        {
-            try
-            {
-                // Get a reference to a blob with a request to the server.
-                // If the blob does not exist, this call will fail with a 404 (Not Found).
-                ICloudBlob blob = container.GetBlobReferenceFromServer(blobName);
-
-                // The previous call gets the blob's properties, so it's not necessary to call FetchAttributes
-                // to read a property.
-                Console.WriteLine("Blob {0} was last modified at {1} local time.", blobName,
-                    blob.Properties.LastModified.Value.LocalDateTime);
-            }
-            catch (StorageException e)
-            {
-                if (e.RequestInformation.HttpStatusCode == 404)
-                {
-                    Console.WriteLine("Blob {0} does not exist.", blobName);
-                    Console.WriteLine("Additional error information: " + e.Message);
-                }
-                else
-                {
-                    Console.WriteLine(e.Message);
-                    Console.ReadLine();
-                    throw;
-                }
-            }
-
-            Console.WriteLine();
-        }
-
-        /// <summary>
-        /// Gets a reference to a blob by making a request to the service.
         /// </summary>
         /// <param name="container">The container.</param>
         /// <param name="blobName">The blob name.</param>
@@ -1581,7 +1519,9 @@ namespace BlobStorage
             try
             {
                 // Get a block blob from the container to use as the source.
-                sourceBlob = container.ListBlobs().OfType<CloudBlockBlob>().FirstOrDefault();
+                sourceBlob = await container
+                    .ListBlobsSegmentedAsync(currentToken: null)
+                    .ContinueWith(res => res.Result.Results.OfType<CloudBlockBlob>().FirstOrDefault());
 
                 // Lease the source blob for the copy operation to prevent another client from modifying it.
                 // Specifying null for the lease interval creates an infinite lease.
@@ -2103,22 +2043,22 @@ namespace BlobStorage
 
             Console.WriteLine("Create Page Blob");
             CloudPageBlob pageBlob = container.GetPageBlobReference("blob1");
-            pageBlob.Create(4 * 1024);
+            await pageBlob.CreateAsync(4 * 1024);
 
             Console.WriteLine("Write Pages to Blob");
             byte[] buffer = GetRandomBuffer(1024);
             using (MemoryStream memoryStream = new MemoryStream(buffer))
             {
-                pageBlob.WritePages(memoryStream, 512);
+                await pageBlob.WritePagesAsync(memoryStream, 512, null);
             }
 
             using (MemoryStream memoryStream = new MemoryStream(buffer))
             {
-                pageBlob.WritePages(memoryStream, 3 * 1024);
+                await pageBlob.WritePagesAsync(memoryStream, 3 * 1024, null);
             }
 
             Console.WriteLine("Get Page Ranges");
-            IEnumerable<PageRange> pageRanges = pageBlob.GetPageRanges();
+            IEnumerable<PageRange> pageRanges = await pageBlob.GetPageRangesAsync();
             foreach (PageRange pageRange in pageRanges)
             {
                 Console.WriteLine(pageRange.ToString());
