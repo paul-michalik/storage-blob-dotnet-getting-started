@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlobStorage", "BlobStorage\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BlobStorage.NetCore", "BlobStorage.NetCore\BlobStorage.NetCore.csproj", "{41FEAF41-B01E-4E8D-ACC8-F09450118C0C}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BlobStorage.NetCore.SplitSdk", "BlobStorage.NetCore.SplitSdk\BlobStorage.NetCore.SplitSdk.csproj", "{7937DB34-4DEF-4F96-8E5B-A1BEAC1C0606}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{41FEAF41-B01E-4E8D-ACC8-F09450118C0C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{41FEAF41-B01E-4E8D-ACC8-F09450118C0C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{41FEAF41-B01E-4E8D-ACC8-F09450118C0C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7937DB34-4DEF-4F96-8E5B-A1BEAC1C0606}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7937DB34-4DEF-4F96-8E5B-A1BEAC1C0606}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7937DB34-4DEF-4F96-8E5B-A1BEAC1C0606}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7937DB34-4DEF-4F96-8E5B-A1BEAC1C0606}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
