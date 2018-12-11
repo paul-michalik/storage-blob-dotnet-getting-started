@@ -38,7 +38,7 @@ namespace BlobStorage
 
             try
             {
-                storageAccount = CloudStorageAccount.Parse(CloudConfigurationManager.GetSetting("StorageConnectionString"));
+                storageAccount = CloudStorageAccount.Parse(GetAppSetting("StorageConnectionString"));
             }
             catch (FormatException)
             {
@@ -54,6 +54,11 @@ namespace BlobStorage
             }
 
             return storageAccount;
-        }    
+        }
+
+        public static string GetAppSetting(string key)
+        {
+            return System.Configuration.ConfigurationManager.AppSettings[key];
+        }
     }
 }
